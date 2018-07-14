@@ -1,0 +1,7 @@
+__pycache__
+config.ini
+sosachkino.egg-info
+*~
+\#*#
+/env/
+

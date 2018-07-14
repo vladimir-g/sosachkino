@@ -1,0 +1,49 @@
+[db]
+path = /path/to/database.sqlite
+
+
+# Logging config
+[loggers]
+keys = root,sosachkino
+
+[handlers]
+keys = console
+# Enable additional handlers like this
+# keys = console,mail,file
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = INFO
+handlers = console
+# handlers = file, mail
+
+[logger_sosachkino]
+level = DEBUG
+qualname = sosachkino
+handlers = console
+# handlers = file, mail
+propagate = 0
+
+[formatter_generic]
+format = %(asctime)s %(levelname)s [%(name)s] %(message)s
+datefmt = %Y-%m-%d %H:%M:%S
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+formatter = generic
+
+# Rotating file logs
+# [handler_file]
+# class = logging.handlers.RotatingFileHandler
+# args = ('/path/to/sosachkino.log', 'a', 131072, 5, 'utf-8')
+# formatter = generic
+
+# Send email on logger.error('error')
+# [handler_mail]
+# class = logging.handlers.SMTPHandler
+# level = ERROR
+# args = ('localhost', 'target@domain.tld', ['from@domain.tld'], 'Subject', None, None, 20.0)
+# formatter = generic
