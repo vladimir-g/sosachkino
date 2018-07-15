@@ -1,6 +1,9 @@
+[app]
+boards = zog,ukr,sn
+sleep_interval = 1
+
 [db]
 path = /path/to/database.sqlite
-
 
 # Logging config
 [loggers]

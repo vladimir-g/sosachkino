@@ -34,11 +34,10 @@ async def run():
     await api.init()
     await db.init()
 
-    updater = Updater(api, db)
+    updater = Updater(config, api, db)
     await updater.update()
 
     await api.close()
-    await db.close()
 
 
 def main():
