@@ -10,10 +10,10 @@ class Api:
     """Partially implemented sosach API."""
     base_url = 'https://2ch.hk'
 
-    async def init(self):
+    async def init(self, app):
         self.session = ClientSession()
 
-    async def close(self):
+    async def close(self, app):
         await self.session.close()
 
     def get_url(self, path, query=dict()):

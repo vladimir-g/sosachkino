@@ -23,7 +23,7 @@ class DB:
             return conn
         return aiosqlite.Connection(connector, asyncio.get_event_loop())
 
-    async def init(self):
+    async def init(self, app):
         """Init database connection and create tables."""
         logger.info('Initializing database at %s', self.path)
         async with self.get_db() as db:

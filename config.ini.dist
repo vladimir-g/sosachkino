@@ -1,6 +1,10 @@
 [app]
 boards = zog,ukr,sn
 sleep_interval = 1
+check_interval = 120
+# Optional
+host = localhost
+port = 8080
 
 [db]
 path = /path/to/database.sqlite

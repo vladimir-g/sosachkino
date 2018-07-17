@@ -3,18 +3,18 @@ import configparser
 import logging
 import logging.config
 import pathlib
+from aiohttp import web
 
 from sosachkino.api import Api
 from sosachkino.db import DB
 from sosachkino.updater import Updater
 
-import asyncio
 
 logger = logging.getLogger(__name__)
 
 
-async def run():
-
+def main():
+    """Init all objects and start aiohttp web server."""
     parser = argparse.ArgumentParser(
         description='Web-based sosach webm viewer.'
     )
@@ -29,17 +29,36 @@ async def run():
     config = configparser.ConfigParser()
     config.read(args.config)
 
+    logger.info('Initializing application')
+    app = web.Application()
+    app['config'] = config
+
+    # API wrapper
     api = Api()
+    app['api'] = api
+
+    # Database
     db = DB(config['db']['path'])
-    await api.init()
-    await db.init()
+    app['db'] = db
 
+    # Updater
     updater = Updater(config, api, db)
-    await updater.update()
+    app['updater'] = updater
 
-    await api.close()
+    # Init api and database
+    app.on_startup.append(api.init)
+    app.on_startup.append(db.init)
+    app.on_startup.append(updater.start_task)
+
+    # Close them on finish
+    app.on_cleanup.append(api.close)
+    app.on_cleanup.append(updater.cleanup_task)
+
+    host = config['app'].get('host', 'localhost')
+    port = int(config['app'].get('port', 8080))
+    logger.info('Starting app on %s:%s', host, port)
+    web.run_app(app, host=host, port=port)
 
 
-def main():
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(run())
+if __name__ == '__main__':
+    main()
