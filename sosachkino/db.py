@@ -158,3 +158,13 @@ class DB:
                         f['board'], f['md5'])
                 await db.execute(sql, args)
             await db.commit()
+
+    async def get_videos(self):
+        """Get list of videos with filter."""
+        sql = 'SELECT * FROM files ORDER BY timestamp DESC LIMIT 20'
+        videos = []
+        async with self.get_db() as db:
+            async with db.execute(sql) as cursor:
+                async for row in cursor:
+                    videos.append(row)
+        return videos

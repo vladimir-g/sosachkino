@@ -108,6 +108,9 @@ class Updater:
         try:
             # Maybe call_later or more robust implementation of check
             # will be better?
+            if self.config['app'].get('disable_updater', False):
+                logger.info('Updater is disabled in config')
+                return
             while True:
                 if self.needs_update():
                     logger.info('Starting periodic update run')

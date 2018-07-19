@@ -3,11 +3,14 @@ import configparser
 import logging
 import logging.config
 import pathlib
+import aiohttp_jinja2
+import jinja2
 from aiohttp import web
 
 from sosachkino.api import Api
 from sosachkino.db import DB
 from sosachkino.updater import Updater
+from sosachkino.views.videos import VideosView
 
 
 logger = logging.getLogger(__name__)
@@ -33,6 +36,10 @@ def main():
     app = web.Application()
     app['config'] = config
 
+    jinja_env = aiohttp_jinja2.setup(
+        app, loader=jinja2.PackageLoader('sosachkino', 'templates')
+    )
+
     # API wrapper
     api = Api()
     app['api'] = api
@@ -54,6 +61,18 @@ def main():
     app.on_cleanup.append(api.close)
     app.on_cleanup.append(updater.cleanup_task)
 
+    # Routing and views
+    videos = VideosView()
+
+    app.add_routes([
+        web.get('/videos/', videos.list, name='videos')
+    ])
+
+    app.router.add_static('/static/',
+                          path=pathlib.Path(__file__).parent / 'static',
+                          name='static')
+
+    # Start server
     host = config['app'].get('host', 'localhost')
     port = int(config['app'].get('port', 8080))
     logger.info('Starting app on %s:%s', host, port)

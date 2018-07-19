@@ -21,6 +21,7 @@ setup(
     packages=find_packages(exclude=['docs', 'tests']),
     install_requires=[
         'aiohttp',
+        'aiohttp_jinja2',
         'aiosqlite',
     ],
 
