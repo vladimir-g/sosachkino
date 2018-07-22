@@ -31,11 +31,15 @@ class Updater:
         """Get list of threads and process every thread."""
         logger.info('Updating board /%s/', board)
         threads = await self.api.get_catalog(board)
+        logger.info('threadids')
         thread_ids = [int(thread['num']) for thread in threads]
+        logger.info('state')
         state = await self.db.get_state(board, thread_ids)
         files = []
         interval = int(self.config['app']['sleep_interval'])
+        logger.info('sleep')
         await asyncio.sleep(interval)
+        logger.info('perthread')
         for thread in threads:
             thread_id = int(thread['num'])
 
@@ -54,6 +58,8 @@ class Updater:
             from_id = None
             if thread_id in state:
                 from_id = state[thread_id]['last']
+            # FIXME process this
+            # {'Code': -1, 'Error': 'Запрошенная доска не существует.'}
             data = await self.api.get_thread(board, thread_id, from_id)
             # Process posts
             last_id = thread_id

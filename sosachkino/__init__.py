@@ -14,7 +14,7 @@ from sosachkino.views.videos import VideosView
 
 
 logger = logging.getLogger(__name__)
-
+logging.getLogger('asyncio').setLevel(logging.DEBUG)
 
 def main():
     """Init all objects and start aiohttp web server."""

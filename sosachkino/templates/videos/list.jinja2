@@ -8,10 +8,18 @@
 
       {% for video in videos %}
         <div class="card">
-          <video class="card-img-top" src="//2ch.hk{{ video["path"] }}" poster="//2ch.hk{{ video["thumbnail"] }}" preload="none" controls="controls"></video>
+          <video class="card-img-top"
+                 src="{{ video.url }}"
+                 poster="{{ video.thumbnail }}"
+                 preload="none"
+                 controls="controls">
+          </video>
+
           <div class="card-body">
             <h5 class="card-title">{{ video["name"] }}</h5>
-            <p class="card-text"><small class="text-muted">{{ video["timestamp"] }}</small></p>
+            <p class="card-text">
+              <small class="text-muted">{{ video.date.strftime("%d.%m.%y %H:%M:%S") }}</small>
+            </p>
           </div>
         </div>
       {% endfor %}
