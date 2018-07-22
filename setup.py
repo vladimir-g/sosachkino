@@ -22,7 +22,7 @@ setup(
     install_requires=[
         'aiohttp',
         'aiohttp_jinja2',
-        'aiosqlite',
+        'sqlalchemy_aio',
     ],
 
     extras_require = {
@@ -35,6 +35,7 @@ setup(
     entry_points = {
         'console_scripts': [
             'sosachkino=sosachkino:main',
+            'sosachkino-initdb=sosachkino.db.initdb:initdb'
         ],
     },
 

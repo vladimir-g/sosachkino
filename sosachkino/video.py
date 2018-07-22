@@ -22,7 +22,7 @@ class Video:
     @property
     def date(self):
         """Get datetime from internal file timestamp."""
-        return datetime.datetime.fromtimestamp(self.data['timestamp'])
+        return self.data['timestamp']
 
     def __getitem__(self, key):
         """Get field from internal row."""

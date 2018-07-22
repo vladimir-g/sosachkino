@@ -31,21 +31,17 @@ class Updater:
         """Get list of threads and process every thread."""
         logger.info('Updating board /%s/', board)
         threads = await self.api.get_catalog(board)
-        logger.info('threadids')
         thread_ids = [int(thread['num']) for thread in threads]
-        logger.info('state')
         state = await self.db.get_state(board, thread_ids)
         files = []
         interval = int(self.config['app']['sleep_interval'])
-        logger.info('sleep')
         await asyncio.sleep(interval)
-        logger.info('perthread')
         for thread in threads:
             thread_id = int(thread['num'])
 
             # Check if thread must be skipped
             is_changed = self.is_changed(state, thread)
-            is_ignored = self.is_ignored(state, thread)
+            is_ignored = self.is_ignored(state, thread) # FIXME
             if not is_changed or is_ignored:
                 logger.debug(
                     "Skipping thread /%s/%s, changed: %s, ignored: %s",
@@ -80,7 +76,7 @@ class Updater:
             await asyncio.sleep(interval)
         logger.info('Got %s new videos for /%s/', len(files), board)
         await self.db.save_videos(files)
-        await self.db.cleanup(board, thread_ids)
+        # await self.db.cleanup(board, thread_ids)
 
     def is_changed(self, state, thread):
         """Check if thread was changed from last update."""
@@ -96,8 +92,8 @@ class Updater:
     def is_ignored(self, state, thread):
         """Check if thread is ignored and must be skipped."""
         thread_id = int(thread['num'])
-        if thread_id in state:
-            return state[thread_id]['hidden']
+        # if thread_id in state:
+        #     return state[thread_id]['hidden']
         return False
 
     def needs_update(self):
@@ -114,13 +110,16 @@ class Updater:
         try:
             # Maybe call_later or more robust implementation of check
             # will be better?
-            if self.config['app'].get('disable_updater', False):
+            if self.config['app'].getboolean(
+                    'disable_updater', fallback=False
+            ):
                 logger.info('Updater is disabled in config')
                 return
             while True:
                 if self.needs_update():
                     logger.info('Starting periodic update run')
                     await self.update()
+                    logger.info('Finished periodic update run')
                 else:
                     logger.info('Skipping update run')
                 await asyncio.sleep(int(self.config['app']['check_interval']))

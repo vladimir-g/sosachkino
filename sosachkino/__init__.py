@@ -45,7 +45,7 @@ def main():
     app['api'] = api
 
     # Database
-    db = DB(config['db']['path'])
+    db = DB(config['db']['conn_string'])
     app['db'] = db
 
     # Updater
@@ -53,12 +53,13 @@ def main():
     app['updater'] = updater
 
     # Init api and database
-    app.on_startup.append(api.init)
     app.on_startup.append(db.init)
+    app.on_startup.append(api.init)
     app.on_startup.append(updater.start_task)
 
     # Close them on finish
     app.on_cleanup.append(api.close)
+    app.on_cleanup.append(db.shutdown)
     app.on_cleanup.append(updater.cleanup_task)
 
     # Routing and views
