@@ -7,9 +7,11 @@ class Threads(Base):
     """Model for thread, cleaned up when missing from json."""
     id = sa.Column(sa.Integer, primary_key=True, autoincrement=False)
     board = sa.Column(sa.Text, index=True)
+    subject = sa.Column(sa.Text)
     last = sa.Column(sa.Integer)
     files_count = sa.Column(sa.Integer)
     updated = sa.Column(sa.DateTime(timezone=True))
+    removed_date = sa.Column(sa.DateTime(timezone=True))
 
 
 class Files(Base):

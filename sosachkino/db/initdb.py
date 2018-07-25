@@ -4,7 +4,7 @@ import argparse
 import configparser
 from sqlalchemy import create_engine
 
-from sosachkino.db import Base, Meta
+from sosachkino.db.base import Base, Meta
 from sosachkino.db.models import *
 
 

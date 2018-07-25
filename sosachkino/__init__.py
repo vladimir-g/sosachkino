@@ -66,7 +66,7 @@ def main():
     videos = VideosView()
 
     app.add_routes([
-        web.get('/videos/', videos.list, name='videos')
+        web.get('/', videos.list, name='videos')
     ])
 
     app.router.add_static('/static/',

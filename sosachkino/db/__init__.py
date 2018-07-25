@@ -1,3 +1,4 @@
+import os
 import logging
 import asyncio
 import datetime
@@ -52,20 +53,14 @@ class DB:
             # Insert new thread
             q = Threads.__table__.insert()
         q = q.values(
+            subject=thread.get('subject', thread['num']),
             last=last_id,
-            updated=datetime.datetime.utcnow(),
+            updated=datetime.datetime.now(),
             files_count=thread['files_count'],
             board=board,
             id=thread_id
         )
         await self.conn.execute(q)
-
-    # async def cleanup(self, board, thread_ids):
-    #     """Remove old threads from database. We assuming that thread never
-    #     appears in catalog once it is gone."""
-    #     await self.conn.execute(sa.delete(Threads).
-    #                             where(Threads.board == board).
-    #                             where(~Threads.id.in_(thread_ids)))
 
     async def save_videos(self, files):
         """Insert new videos into database."""
@@ -87,9 +82,10 @@ class DB:
         for f in files:
             keys = ('size', 'width', 'height', 'thumbnail', 'tn_height',
                     'tn_width', 'path', 'md5', 'thread', 'board')
+            name = os.path.splitext(f.get('fullname', f['name']))[0]
             values = {k: f[k] for k in keys}
             values.update({
-                'name': f['fullname'][:-5], # strip .webm
+                'name': name,
                 'timestamp': datetime.datetime.fromtimestamp(f['timestamp'])
             })
             if (f['board'], f['md5']) in existing:
@@ -107,13 +103,59 @@ class DB:
                 ))
             await self.conn.execute(q.values(**values))
 
-    async def get_videos(self):
+    async def get_videos(self, filter_=dict()):
         """Get list of videos with filter."""
+        q = sa.select([Files]).order_by(Files.timestamp.desc())
+
+        # Filtering
+        if 'board' in filter_:
+            q = q.where(Files.board.in_(filter_['board']))
+        if 'thread' in filter_:
+            q = q.where(Files.thread.in_(filter_['thread']))
+        if 'limit' in filter_:
+            q = q.limit(filter_['limit'])
+        if 'offset' in filter_:
+            q = q.offset(filter_['offset'])
+
+        res = await self.conn.execute(q)
+        while True:
+            row = await res.fetchone()
+            if row is None:
+                break
+            yield dict(row)
+
+    async def set_removed(self, board, thread_ids):
+        """Set removed date for threads that don't exist in catalog now."""
+        logger.debug('Marking old threads as removed, board: /%s/', board)
+
+        await self.conn.execute( # FIXME
+            sa.update(Threads)
+            .where(~Threads.id.in_(thread_ids))
+            .where(Threads.removed_date != None)
+            .where(Threads.board == board)
+            .values(removed_date=datetime.datetime.now())
+        )
+
+    async def get_old_files(self, from_date):
+        """Get files from threads that were removed some time ago."""
         res = await self.conn.execute(
-            sa.select([Files]).order_by(Files.timestamp.desc()).limit(50)
+            sa.select([Files]).select_from(
+                Files.__table__.join(Threads, Threads.id == Files.thread)
+            ).where(Thread.removed_date < from_date)
         )
         while True:
             row = await res.fetchone()
             if row is None:
                 break
             yield dict(row)
+
+    async def get_boards(self):
+        """Get list of existing boards."""
+        boards = set()
+        c = await self.conn.execute(
+            sa.select([sa.distinct(Threads.board)])
+        )
+        result = await c.fetchall()
+        for row in result:
+            boards.add(row[0])
+        return boards

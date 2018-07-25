@@ -1,18 +1,60 @@
 {% extends "base.jinja2" %}
 
 {% block center %}
-  <h1>Videos</h1>
-
   <div class="row">
-    <div class="card-columns">
+
+    <div class="col-md-2">
+      <h4>Filter</h4>
+
+      <form method="get" action="">
+
+        {% if boards %}
+          <div class="card">
+            <div class="card-header">Boards</div>
+            <div class="card-body">
+              <fieldset>
+                {% for board in boards %}
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="board" value="{{ board }}" id="board-{{ board }}" />
+                    <label class="form-check-label" for="board-{{ board }}">
+                      /{{ board }}/
+                    </label>
+                  </div>
+                {% endfor %}
+              </fieldset>
+            </div>
+          </div>
+          <br />
+        {% endif %}
+
+        <div class="card">
+          <div class="card-body">
+            <div class="btn-toolbar" role="toolbar" aria-label="Search toolbar">
+              <div class="btn-group mr-2" role="group" aria-label="Search buttons">
+                <button type="submit" class="btn btn-primary">Filter</button>
+                <button type="button" class="btn btn-danger">Reset</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </form>
+
+    </div>
+
+    <div class="col-md-10 card-columns">
 
       {% for video in videos %}
         <div class="card">
           <video class="card-img-top"
                  src="{{ video.url }}"
                  poster="{{ video.thumbnail }}"
+                 {% if video.type %}
+                   type="{{ video.type }}"
+                 {% endif %}
                  preload="none"
                  controls="controls">
+                 Video couldn't be played by browser
           </video>
 
           <div class="card-body">

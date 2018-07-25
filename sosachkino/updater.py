@@ -10,6 +10,7 @@ class Updater:
     """Object that checks for new videos and updates database."""
     is_running = False
     last_check = None
+    extensions = ('.webm', '.mp4')
 
     def __init__(self, config, api, db):
         self.db = db
@@ -55,13 +56,18 @@ class Updater:
             if thread_id in state:
                 from_id = state[thread_id]['last']
             # FIXME process this
-            # {'Code': -1, 'Error': 'Запрошенная доска не существует.'}
             data = await self.api.get_thread(board, thread_id, from_id)
+
+            # Check API error, maybe move to api later FIXME
+            if isinstance(data, dict):
+                if 'Error' in data and data.get('Code') == -1:
+                    continue
+
             # Process posts
             last_id = thread_id
             for post in data:
                 for f in post['files']:
-                    if not f['path'].lower().endswith('.webm'):
+                    if not self.is_video(f['path']):
                         continue
                     f.update({
                         'thread': int(thread['num']),
@@ -76,7 +82,7 @@ class Updater:
             await asyncio.sleep(interval)
         logger.info('Got %s new videos for /%s/', len(files), board)
         await self.db.save_videos(files)
-        # await self.db.cleanup(board, thread_ids)
+        await self.db.set_removed(board, thread_ids)
 
     def is_changed(self, state, thread):
         """Check if thread was changed from last update."""
@@ -138,3 +144,10 @@ class Updater:
         """Stop background check task."""
         app['check_task'].cancel()
         await app['check_task']
+
+    def is_video(self, path):
+        """Check if file is supported video format."""
+        lpath = path.lower()
+        for ext in self.extensions:
+            if lpath.endswith(ext): return True
+        return False
