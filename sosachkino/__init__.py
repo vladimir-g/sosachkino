@@ -63,7 +63,7 @@ def main():
     app.on_cleanup.append(updater.cleanup_task)
 
     # Routing and views
-    videos = VideosView()
+    videos = VideosView(app)
 
     app.add_routes([
         web.get('/', videos.list, name='videos')

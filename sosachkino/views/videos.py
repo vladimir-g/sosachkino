@@ -22,15 +22,13 @@ class VideosView(BaseView):
             q['thread'] = query.getall('thread')
 
         # Page and page size
-        page_size = self.page_size
         try:
-            page_size = int(query.get('limit'))
+            page_size = int(query.get('limit', self.page_size))
         except (TypeError, ValueError) as e:
             pass
 
-        page = 1
         try:
-            page = int(query.get('page'))
+            page = int(query.get('page', 1))
         except (TypeError, ValueError) as e:
             pass
 
@@ -42,8 +40,15 @@ class VideosView(BaseView):
         async for video in request.app['db'].get_videos(q):
             videos.append(Video(video))
 
+        count = await request.app['db'].get_videos_count(q)
+
+        pagination = self.get_pagination(
+            'videos', page, count, page_size, query
+        )
+
         return {
             'videos': videos,
             'boards': boards,
+            'pagination': pagination,
             'query': q
         }

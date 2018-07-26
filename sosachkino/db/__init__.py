@@ -103,15 +103,25 @@ class DB:
                 ))
             await self.conn.execute(q.values(**values))
 
+    def filter_query(self, query, filter_):
+        """Get filtered query for video list."""
+        if 'board' in filter_:
+            query = query.where(Files.board.in_(filter_['board']))
+        if 'thread' in filter_:
+            query = query.where(Files.thread.in_(filter_['thread']))
+        return query
+
+    async def get_videos_count(self, filter_=dict()):
+        """Get list of videos with filter."""
+        q = sa.select([sa.func.count(Files.id)]).select_from(Files)
+        q = self.filter_query(q, filter_)
+        result = await self.conn.scalar(q)
+        return result
+
     async def get_videos(self, filter_=dict()):
         """Get list of videos with filter."""
         q = sa.select([Files]).order_by(Files.timestamp.desc())
-
-        # Filtering
-        if 'board' in filter_:
-            q = q.where(Files.board.in_(filter_['board']))
-        if 'thread' in filter_:
-            q = q.where(Files.thread.in_(filter_['thread']))
+        q = self.filter_query(q, filter_)
         if 'limit' in filter_:
             q = q.limit(filter_['limit'])
         if 'offset' in filter_:

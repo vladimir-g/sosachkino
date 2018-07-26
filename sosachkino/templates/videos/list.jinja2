@@ -42,29 +42,41 @@
 
     </div>
 
-    <div class="col-md-10 card-columns">
+    <div class="col-md-10">
+      <br />
+      <div class="row">
+        {{ macros.paginator(pagination) }}
+      </div>
+      <div class="row">
+        <div class="card-columns">
 
-      {% for video in videos %}
-        <div class="card">
-          <video class="card-img-top"
-                 src="{{ video.url }}"
-                 poster="{{ video.thumbnail }}"
-                 {% if video.type %}
-                   type="{{ video.type }}"
-                 {% endif %}
-                 preload="none"
-                 controls="controls">
-                 Video couldn't be played by browser
-          </video>
+          {% for video in videos %}
+            <div class="card">
+              <video class="card-img-top"
+                     src="{{ video.url }}"
+                     poster="{{ video.thumbnail }}"
+                     {% if video.type %}
+                       type="{{ video.type }}"
+                     {% endif %}
+                     preload="none"
+                     controls="controls">
+                     Video couldn't be played by browser
+              </video>
 
-          <div class="card-body">
-            <h5 class="card-title">{{ video["name"] }}</h5>
-            <p class="card-text">
-              <small class="text-muted">{{ video.date.strftime("%d.%m.%y %H:%M:%S") }}</small>
-            </p>
-          </div>
+              <div class="card-body">
+                <h5 class="card-title">{{ video["name"] }}</h5>
+                <p class="card-text">
+                  <small class="text-muted">{{ video.date.strftime("%d.%m.%y %H:%M:%S") }}</small>
+                </p>
+              </div>
+            </div>
+          {% endfor %}
         </div>
-      {% endfor %}
+      </div>
+
+      <div class="row">
+        {{ macros.paginator(pagination) }}
+      </div>
 
     </div>
   </div>
