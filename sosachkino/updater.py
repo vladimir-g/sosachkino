@@ -2,6 +2,8 @@ import logging
 import asyncio
 import time
 
+from sosachkino.api import ApiError
+
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +33,14 @@ class Updater:
     async def update_board(self, board):
         """Get list of threads and process every thread."""
         logger.info('Updating board /%s/', board)
-        threads = await self.api.get_catalog(board)
+        try:
+            threads = await self.api.get_catalog(board)
+        except ApiError as e:
+            logger.warning("Couldn't get /%s/ catalog: %s", board, e)
+            return
+        except Exception as e:
+            logger.exception("Error while getting catalog: %s", e)
+            return
         thread_ids = [int(thread['num']) for thread in threads]
         state = await self.db.get_state(board, thread_ids)
         files = []
@@ -56,28 +65,45 @@ class Updater:
             if thread_id in state:
                 from_id = state[thread_id]['last']
             # FIXME process this
-            data = await self.api.get_thread(board, thread_id, from_id)
+            try:
+                data = await self.api.get_thread(board, thread_id, from_id)
+            except ApiError as e:
+                logger.warning("Couldn't get thread /%s/%s : %s",
+                               board, thread_id, e)
+                continue
+            except Exception as e:
+                logger.exception("Error while processing thread /%s/%s: %s",
+                                 board, thread_id, e)
+                continue
 
             # Check API error, maybe move to api later FIXME
             if isinstance(data, dict):
-                if 'Error' in data and data.get('Code') == -1:
+                if 'Error' in data and 'Code' in data:
+                    logger.warning("Response error /%s/%s : %s",
+                                   board, thread_id, data)
                     continue
 
             # Process posts
-            last_id = thread_id
-            for post in data:
-                for f in post['files']:
-                    if not self.is_video(f['path']):
-                        continue
-                    f.update({
-                        'thread': int(thread['num']),
-                        'board': board,
-                        'timestamp': int(post['timestamp'])
-                    })
-                    files.append(f)
-                last_id = int(post['num'])
+            try:
+                last_id = thread_id
+                for post in data:
+                    for f in post['files']:
+                        if not self.is_video(f['path']):
+                            continue
+                        f.update({
+                            'thread': int(thread['num']),
+                            'board': board,
+                            'timestamp': int(post['timestamp'])
+                        })
+                        files.append(f)
+                    last_id = int(post['num'])
+                    
+                await self.db.update_thread_state(board, thread, last_id)
+            except Exception as e:
+                logger.exception("Error while processing posts /%s/%s: %s",
+                                 board, thread_id, e)
+                continue
 
-            await self.db.update_thread_state(board, thread, last_id)
             # Sleep for configured time
             await asyncio.sleep(interval)
         logger.info('Got %s new videos for /%s/', len(files), board)

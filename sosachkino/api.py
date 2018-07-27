@@ -1,9 +1,20 @@
 import logging
 from urllib.parse import urlencode
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientError
 
 
 logger = logging.getLogger(__name__)
+
+
+class ApiError(Exception):
+    """API-related exception."""
+    def __init__(self, message, url):
+        super().__init__(message)
+        self.url = url
+
+    def __str__(self):
+        err = super().__str__()
+        return '{}, url: {}'.format(err, self.url)
 
 
 class Api:
@@ -37,9 +48,13 @@ class Api:
         """Get thread list from catalog."""
         url = self.catalog_url(board)
         logger.debug('Requesting catalog %s', url)
-        async with self.session.get(url) as r:
-            response = await r.json()
-            return response['threads']
+        try:
+            async with self.session.get(url) as r:
+                response = await r.json()
+                return response['threads']
+        except ClientError as e:
+            logger.warning('API error: url %s, %s', url, e)
+            raise ApiError(e, url)
 
     async def get_thread(self, board, thread, from_=None):
         """Get messages from thread starting with from_ post."""
@@ -47,6 +62,10 @@ class Api:
             from_ = thread
         url = self.thread_url(board, thread, from_)
         logger.debug('Requesting thread %s', url)
-        async with self.session.get(url) as r:
-            response = await r.json()
-            return response
+        try:
+            async with self.session.get(url) as r:
+                response = await r.json()
+                return response
+        except ClientError as e:
+            logger.warning('API error: url %s, %s', url, e)
+            raise ApiError(e, url)
