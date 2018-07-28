@@ -1,3 +1,9 @@
 * Web interface for viewing sosach' webms
   
-Dat shit
+Simple web viewer for webms from 2ch.hk.
+
+Readme will be updated soon
+
+** License
+
+This app is licensed under WTFPL (see [[file:COPYING][COPYING]] file).
