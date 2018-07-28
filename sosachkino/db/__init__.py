@@ -68,7 +68,7 @@ class DB:
         # Get already existing files with same md5 for same boards
         for f in files:
             checksums[f['board']].append(f['md5'])
-        existing = set()
+        existing = defaultdict(set)
         for board, md5_list in checksums.items():
             c = await self.conn.execute(
                 sa.select([Files.md5])
@@ -77,8 +77,7 @@ class DB:
             )
             res = await c.fetchall()
             for row in res:
-                existing.add((board, row['md5']))
-        
+                existing[board].add(row['md5'])
         for f in files:
             keys = ('size', 'width', 'height', 'thumbnail', 'tn_height',
                     'tn_width', 'path', 'md5', 'thread', 'board')
@@ -88,7 +87,7 @@ class DB:
                 'name': name,
                 'timestamp': datetime.datetime.fromtimestamp(f['timestamp'])
             })
-            if (f['board'], f['md5']) in existing:
+            if f['md5'] in existing[f['board']]:
                 q = sa.update(Files).\
                     where(Files.board == f['board']).\
                     where(Files.md5 == f['md5'])
