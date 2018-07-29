@@ -1,5 +1,6 @@
 import logging
 import asyncio
+import datetime
 import time
 
 from sosachkino.api import ApiError
@@ -12,6 +13,8 @@ class Updater:
     """Object that checks for new videos and updates database."""
     is_running = False
     last_check = None
+    is_running_cleanup = False
+    last_check_cleanup = None
     extensions = ('.webm', '.mp4')
 
     def __init__(self, config, api, db):
@@ -24,7 +27,7 @@ class Updater:
         self.is_running = True
         if boards is None:
             boards = [b.strip() for b in
-                      self.config['app']['boards'].split(',')]
+                      self.config['updater']['boards'].split(',')]
         for board in boards:
             await self.update_board(board)
         self.last_check = time.time() # Maybe asyncio.loop.time()?
@@ -44,7 +47,7 @@ class Updater:
         thread_ids = [int(thread['num']) for thread in threads]
         state = await self.db.get_state(board, thread_ids)
         files = []
-        interval = int(self.config['app']['sleep_interval'])
+        interval = int(self.config['updater']['sleep'])
         await asyncio.sleep(interval)
         for thread in threads:
             thread_id = int(thread['num'])
@@ -109,6 +112,7 @@ class Updater:
         logger.info('Got %s new videos for /%s/', len(files), board)
         await self.db.save_videos(files)
         await self.db.set_removed(board, thread_ids)
+        await self.db.clean_threads()
 
     def is_changed(self, state, thread):
         """Check if thread was changed from last update."""
@@ -135,15 +139,54 @@ class Updater:
         if self.last_check is None:
             return True
         return (time.time() - self.last_check >
-                int(self.config['app']['check_interval']))
+                int(self.config['updater']['interval']))
 
-    async def run(self, app):
+    def needs_cleanup(self):
+        """Check if cleanup interval already passed since last run."""
+        if self.is_running_cleanup:
+            return False
+        if self.last_check_cleanup is None:
+            return True
+        return (time.time() - self.last_check_cleanup >
+                int(self.config['cleanup']['interval']))
+
+    async def cleanup(self):
+        """Check for removed webms."""
+        self.is_running_cleanup = True
+        from_date = datetime.datetime.now() - datetime.timedelta(
+            seconds=int(self.config['cleanup']
+                        .get('removed_thread_check_time', 3600))
+        )
+        check_files = await self.db.get_removed_thread_check(from_date)
+        # If all threads are ok, just check some newer files
+        if not len(check_files):
+            from_date = datetime.datetime.now() - datetime.timedelta(
+                seconds=int(self.config['cleanup']
+                            .get('file_check_time', 14400))
+            )
+            check_files = await self.db.get_files_to_check(from_date)
+        logger.debug('Checking %s files', len(check_files))
+        interval = int(self.config['cleanup']['sleep'])
+        for f in check_files:
+            exists = await self.api.check_file(f['path'])
+            if not exists:
+                await self.db.remove_file(f['id'])
+            else:
+                await self.db.update_checked(f['id'])
+            # Cleand threads when there is no update
+            if not self.is_running:
+                await self.db.clean_threads()
+            await asyncio.sleep(interval)
+        self.last_check_cleanup = time.time()
+        self.is_running_cleanup = False
+
+    async def run_update(self, app):
         """Run endless check loop."""
         try:
             # Maybe call_later or more robust implementation of check
             # will be better?
-            if self.config['app'].getboolean(
-                    'disable_updater', fallback=False
+            if self.config['updater'].getboolean(
+                    'disable', fallback=False
             ):
                 logger.info('Updater is disabled in config')
                 return
@@ -154,22 +197,52 @@ class Updater:
                     logger.info('Finished periodic update run')
                 else:
                     logger.info('Skipping update run')
-                await asyncio.sleep(int(self.config['app']['check_interval']))
+                await asyncio.sleep(int(self.config['updater']['interval']))
         except asyncio.CancelledError:
             pass
         except Exception as e:
             logger.exception("Error on update run: %s", e)
 
+    async def run_cleanup(self, app):
+        """Run endless clean loop."""
+        try:
+            if self.config['cleanup'].getboolean(
+                    'disable', fallback=False
+            ):
+                logger.info('Cleanup is disabled in config')
+                return
+            while True:
+                if self.needs_cleanup():
+                    logger.info('Starting periodic cleanup run')
+                    await self.cleanup()
+                    logger.info('Finished periodic cleanup run')
+                else:
+                    logger.info('Skipping cleanup run')
+                await asyncio.sleep(
+                    int(self.config['cleanup'].get('interval', 300))
+                )
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.exception("Error on cleanup run: %s", e)
+
     @classmethod
     async def start_task(cls, app):
-        """Start background check task."""
-        app['check_task'] = app.loop.create_task(app['updater'].run(app))
+        """Start background tasks."""
+        app['check_task'] = app.loop.create_task(
+            app['updater'].run_update(app)
+        )
+        app['cleanup_task'] = app.loop.create_task(
+            app['updater'].run_cleanup(app)
+        )
         
     @classmethod
     async def cleanup_task(cls, app):
-        """Stop background check task."""
+        """Stop background tasks."""
         app['check_task'].cancel()
+        app['cleanup_task'].cancel()
         await app['check_task']
+        await app['cleanup_task']
 
     def is_video(self, path):
         """Check if file is supported video format."""

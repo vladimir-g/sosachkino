@@ -1,11 +1,19 @@
 [app]
-boards = zog,ukr,sn
-sleep_interval = 1
-check_interval = 120
-# Optional
 host = localhost
 port = 8080
-disable_updater = false
+
+[updater]
+boards = zog,ukr,sn
+sleep = 1
+interval = 120
+disable = false
+
+[cleanup]
+sleep = 1
+interval = 300
+disable = false
+removed_thread_check_time = 3600
+file_check_time = 14400
 
 [db]
 conn_string = sqlite:////absolute/path/to/database.sqlite

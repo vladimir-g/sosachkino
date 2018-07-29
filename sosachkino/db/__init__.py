@@ -136,27 +136,13 @@ class DB:
     async def set_removed(self, board, thread_ids):
         """Set removed date for threads that don't exist in catalog now."""
         logger.debug('Marking old threads as removed, board: /%s/', board)
-
-        await self.conn.execute( # FIXME
+        await self.conn.execute(
             sa.update(Threads)
             .where(~Threads.id.in_(thread_ids))
-            .where(Threads.removed_date != None)
+            .where(Threads.removed_date == None)
             .where(Threads.board == board)
             .values(removed_date=datetime.datetime.now())
         )
-
-    async def get_old_files(self, from_date):
-        """Get files from threads that were removed some time ago."""
-        res = await self.conn.execute(
-            sa.select([Files]).select_from(
-                Files.__table__.join(Threads, Threads.id == Files.thread)
-            ).where(Thread.removed_date < from_date)
-        )
-        while True:
-            row = await res.fetchone()
-            if row is None:
-                break
-            yield dict(row)
 
     async def get_boards(self):
         """Get list of existing boards."""
@@ -168,3 +154,57 @@ class DB:
         for row in result:
             boards.add(row[0])
         return boards
+
+    async def get_removed_thread_check(self, from_date):
+        """Get files from removed threads that need checking."""
+        c = await self.conn.execute(
+            sa.select([Files]).select_from(
+                Files.__table__.join(Threads, Threads.id == Files.thread)
+            ).where(Threads.removed_date < datetime.datetime.now())
+            .where(Files.last_check < from_date)
+            .order_by(Files.last_check.asc())
+        )
+        res = await c.fetchall()
+        files = [dict(f) for f in res]
+        logger.debug('Found %s potentially missing files', len(files))
+        return files
+
+    async def get_files_to_check(self, from_date):
+        """Get files that just need check."""
+        c = await self.conn.execute(
+            sa.select([Files])
+            .where(Files.last_check < from_date)
+            .order_by(Files.last_check.desc()) # Check newer files first
+            .limit(60)      # Don't check everything in one run
+        )
+        res = await c.fetchall()
+        files = [dict(f) for f in res]
+        logger.debug('Got %s old files', len(files))
+        return files
+
+    async def remove_file(self, file_id):
+        """Remove file from database."""
+        logger.debug('Removing file %s', file_id)
+        await self.conn.execute(
+            sa.delete(Files).where(Files.id == file_id)
+        )
+
+    async def update_checked(self, file_id):
+        """Remove file from database."""
+        logger.debug('Update last check for file %s', file_id)
+        await self.conn.execute(
+            sa.update(Files).where(Files.id == file_id)
+            .values(last_check=datetime.datetime.now())
+        )
+
+    async def clean_threads(self):
+        """Remove threads without files from database."""
+        logger.debug('Cleaning old threads')
+        await self.conn.execute(
+            sa.delete(Threads).where(Threads.id.in_(
+                sa.select([Threads.id]).select_from(
+                    Threads.__table__.outerjoin(Files, Files.thread == Threads.id)
+                ).group_by(Threads.id)
+                .having(sa.func.count(Files.id) == 0))
+            )
+        )

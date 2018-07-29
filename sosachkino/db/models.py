@@ -32,3 +32,4 @@ class Files(Base):
     tn_height = sa.Column(sa.Integer)
     md5 = sa.Column(sa.Text, index=True)
     hidden = sa.Column(sa.Boolean, default=False)
+    last_check = sa.Column(sa.DateTime(timezone=True), default=sa.func.now())
