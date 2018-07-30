@@ -1,8 +1,8 @@
-* Web interface for viewing sosach' webms
+* SosachKino
   
-Simple web viewer for webms from 2ch.hk.
+A web interface for viewing sosach' webms.
 
-Readme will be updated soon
+Installation instructions will be there soon.
 
 ** License
 
