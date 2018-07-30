@@ -8,6 +8,15 @@ class VideosView(BaseView):
     """Videos-related views."""
     page_size = 24
 
+    def get_int_param(self, query, name, default):
+        """Get integer parameter from query with fallback value."""
+        value = default
+        try:
+            value = int(query.get(name))
+        except (TypeError, ValueError) as e:
+            pass
+        return value
+
     @aiohttp_jinja2.template("videos/list.jinja2")
     async def list(self, request):
         """Paginated and filtrable list of videos."""
@@ -22,15 +31,8 @@ class VideosView(BaseView):
             q['thread'] = query.getall('thread')
 
         # Page and page size
-        try:
-            page_size = int(query.get('limit', self.page_size))
-        except (TypeError, ValueError) as e:
-            pass
-
-        try:
-            page = int(query.get('page', 1))
-        except (TypeError, ValueError) as e:
-            pass
+        page_size = self.get_int_param(query, 'limit', self.page_size)
+        page = self.get_int_param(query, 'page', 1)
 
         q['limit'] = page_size
         q['offset'] = (page - 1) * page_size
