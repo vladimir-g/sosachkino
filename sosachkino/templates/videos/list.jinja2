@@ -35,6 +35,34 @@
           <br />
         {% endif %}
 
+        {% if threads %}
+          <div class="card">
+            <div class="card-header">Threads</div>
+            <div class="card-body" style="max-height: 80vh; overflow-y: auto; overflow-x: hidden;">
+              <fieldset> 
+                {% for thread in threads %} 
+                  <div class="form-check"> 
+                    <input 
+                      class="form-check-input" 
+                      type="checkbox" 
+                      name="thread" 
+                      value="{{ thread["id"] }}" 
+                      {% if thread["id"]|string in query.get("thread", []) %} 
+                        checked="checked" 
+                      {% endif %} 
+                      id="thread-{{ thread["id"] }}" /> 
+                      <label class="form-check-label" for="thread-{{ thread["id"] }}"> 
+                        <small>/{{ thread["board"] }}/{{ thread["id"] }} <span class="badge badge-secondary">{{ thread["files"] }}</span><br /><span>{{ thread["subject"] }}</span> </small> 
+                      </label> 
+                  </div> 
+                {% endfor %} 
+              </fieldset> 
+
+            </div>
+          </div>
+          <br />
+        {% endif %}
+
         <div class="card">
           <div class="card-body">
             <div class="btn-toolbar" role="toolbar" aria-label="Search toolbar">

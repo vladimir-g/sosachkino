@@ -43,6 +43,7 @@ class VideosView(BaseView):
             videos.append(Video(video))
 
         count = await request.app['db'].get_videos_count(q)
+        threads = await request.app['db'].get_threads(q)
 
         pagination = self.get_pagination(
             'videos', page, count, page_size, query
@@ -52,5 +53,6 @@ class VideosView(BaseView):
             'videos': videos,
             'boards': boards,
             'pagination': pagination,
-            'query': q
+            'query': q,
+            'threads': threads,
         }

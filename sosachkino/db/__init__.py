@@ -117,6 +117,30 @@ class DB:
         result = await self.conn.scalar(q)
         return result
 
+    async def get_threads(self, filter_=dict()):
+        """Get list of threads with videos count."""
+        # Get filter info grouped with file counts
+        q = sa.select([
+            Threads.id,
+            Threads.board,
+            Threads.subject,
+            sa.func.count(Files.id).label('files')
+        ]).select_from(
+            Files.__table__.join(Threads, Files.thread == Threads.id)
+        ).having(sa.func.count(Files.id) > 0).\
+        order_by(sa.func.count(Files.id).desc()).\
+        group_by(Threads.id)
+
+        # Filter it by our common filter but remove thread param
+        if filter_ and 'thread' in filter_:
+            filter_ = filter_.copy()
+            del filter_['thread']
+        res = await self.conn.execute(
+            self.filter_query(q, filter_)
+        )
+        threads = await res.fetchall()
+        return [dict(row) for row in threads]
+
     async def get_videos(self, filter_=dict()):
         """Get list of videos with filter."""
         q = sa.select([Files]).order_by(Files.timestamp.desc())
