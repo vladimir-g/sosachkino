@@ -177,7 +177,7 @@ class DB:
         result = await c.fetchall()
         for row in result:
             boards.add(row[0])
-        return boards
+        return sorted(boards)
 
     async def get_removed_thread_check(self, from_date):
         """Get files from removed threads that need checking."""
