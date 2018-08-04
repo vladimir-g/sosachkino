@@ -1,7 +1,7 @@
 {%- macro paginator(pagination) -%}
   {% if pagination["pages"] and pagination["pages"][0]|length > 1 %}
-    <nav>
-      <ul class="pagination">
+    <nav class="d-none d-md-block">
+      <ul class="pagination pagination-sm flex-sm-wrap">
         {% if pagination["prev"] %}
           {% set p = pagination["prev"] %}
           <li class="page-item"><a class="page-link" href="{{ p["link"] }}">&laquo;</a></li>
@@ -21,6 +21,37 @@
         {% if pagination["next"] %}
           {% set p = pagination["next"] %}
           <li class="page-item"><a class="page-link" href="{{ p["link"] }}">&raquo;</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+
+    {# Responsive #}
+    <nav class="d-block d-md-none">
+      <ul class="pagination pagination-sm">
+        {% if pagination["prev"] %}
+          {% set p = pagination["prev"] %}
+          <li class="page-item"><a class="page-link" href="{{ p["link"] }}">&larr;</a></li>
+        {% endif %}
+        {% for group in pagination["pages"] %}
+          {% if loop.first and not group[0]["current"] %}
+            <li class="page-item"><a class="page-link" href="{{ group[0]["link"] }}">{{ group[0]["number"] }}</a></li>
+          {% endif %}
+
+          {% for p in group %}
+            {% if p["current"] %}
+              {% if p["number"]|int > 2 %}<li class="page-item disabled"><span class="page-link">...</span></li>{% endif %}
+              <li class="page-item active"><span class="page-link">{{ p["number"] }}</span></li>
+              {% if p["number"]|int < group[-1]["number"]|int - 1 %}<li class="page-item disabled"><span class="page-link">...</span></li>{% endif %}
+            {% endif %}
+          {% endfor %}
+
+          {% if loop.last and not group[-1]["current"] %}
+            <li class="page-item"><a class="page-link" href="{{ group[-1]["link"] }}">{{ group[-1]["number"] }}</a></li>
+          {% endif %}
+        {% endfor %}
+        {% if pagination["next"] %}
+          {% set p = pagination["next"] %}
+          <li class="page-item"><a class="page-link" href="{{ p["link"] }}">&rarr;</a></li>
         {% endif %}
       </ul>
     </nav>
