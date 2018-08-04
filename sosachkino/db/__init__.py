@@ -132,14 +132,24 @@ class DB:
         group_by(Threads.id)
 
         # Filter it by our common filter but remove thread param
+        filtered = None
         if filter_ and 'thread' in filter_:
+            try:
+                filtered = [int(i) for i in filter_['thread']] # For sorting
+            except:
+                pass
             filter_ = filter_.copy()
             del filter_['thread']
         res = await self.conn.execute(
             self.filter_query(q, filter_)
         )
-        threads = await res.fetchall()
-        return [dict(row) for row in threads]
+        result = await res.fetchall()
+        threads = [dict(row) for row in result]
+        if filtered is not None:
+            threads = sorted(threads,
+                             key=lambda t: (t['id'] in filtered, t['files']),
+                             reverse=True)
+        return threads
 
     async def get_videos(self, filter_=dict()):
         """Get list of videos with filter."""
