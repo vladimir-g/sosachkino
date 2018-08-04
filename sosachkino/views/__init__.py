@@ -54,7 +54,7 @@ class BaseView:
                 query = get_query_for_page(p)
                 link = self.app.router[route].\
                     url_for(**kw).\
-                    with_query(**query)
+                    with_query(query)
                 block.append({
                     'number': str(p),
                     'link': link,
