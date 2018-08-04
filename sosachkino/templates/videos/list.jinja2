@@ -10,8 +10,10 @@
     <form id="filter-form" method="get" action="{{ url("videos") }}"> 
 
       {% if boards %} 
+        <div>
+          <h5>Boards</h5>
+        </div>
         <fieldset id="boards-filter"> 
-          <legend>Boards</legend> 
           {% for board in boards %} 
             <div class="form-check"> 
               <input 
@@ -32,11 +34,13 @@
       {% endif %} 
 
       {% if threads %} 
-        <fieldset id="thread-filter"> 
-          <legend>Threads</legend>
+        <div>
+          <h5>Threads</h5>
           <input class="form-control form-control-sm" type="text" placeholder="Disabled, not ready"  disabled />
-          <div> 
-            {% for thread in threads %}  
+        </div>
+        <fieldset id="thread-filter">
+          <div>
+            {% for thread in threads %}
               <div class="form-check">  
                 <input  
                   class="form-check-input"  
@@ -45,14 +49,14 @@
                   value="{{ thread["id"] }}"  
                   {% if thread["id"]|string in query.get("thread", []) %}  
                     checked="checked"  
-                  {% endif %}  
+                  {% endif %}
                   id="thread-{{ thread["id"] }}" />  
                   <label class="form-check-label" for="thread-{{ thread["id"] }}">  
                     <small>/{{ thread["board"] }}/{{ thread["id"] }} <span class="badge badge-secondary">{{ thread["files"] }}</span><br /><span>{{ thread["subject"] }}</span> </small>  
                   </label>  
               </div>  
             {% endfor %} 
-          </div> 
+          </div>
         </fieldset>  
       {% endif %} 
 

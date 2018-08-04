@@ -70,6 +70,14 @@
     flex-direction: column;
 }
 
+#filter-form > div {
+    flex: 0 1 auto;
+}
+
+#filter-form > div > h5 {
+    font-size: 1.1rem;
+}
+
 #filter-form label.form-check-label {
     font-size: 0.9rem;
 }
@@ -80,28 +88,12 @@
     padding-bottom: 10px;
 }
 
-#filter-form fieldset legend {
-    font-size: 1.1rem;
-}
-
 #thread-filter {
     overflow-x: hidden;
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
-}
-
-#thread-filter > legend,
-#thread-filter > input {
-    flex: 0 1 auto;
-}
-
-#thread-filter > div {
-    flex: 1 1 auto;
-    overflow-y: auto;
-    overflow-x: hidden;
-    min-height: 0;
 }
 
 #boards-filter {
