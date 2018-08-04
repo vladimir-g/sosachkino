@@ -1,87 +1,80 @@
 {% extends "base.jinja2" %}
 
 {% block center %}
+  <input type="checkbox" class="d-none" id="slide" name="slide" autocomplete="off" />
+  <aside id="sidebar" class="col-xs-12 col-sm-6 col-md-4 col-lg-3 bg-light">
+    <label id="slide-toggle" for="slide">Filter</label>
+    <label id="slide-close" class="close" for="slide">
+      <span aria-hidden="true" title="Close">&times;</span>
+    </label>
+    <form id="filter-form" method="get" action="{{ url("videos") }}"> 
+
+      {% if boards %} 
+        <fieldset id="boards-filter"> 
+          <legend>Boards</legend> 
+          {% for board in boards %} 
+            <div class="form-check"> 
+              <input 
+                class="form-check-input" 
+                type="checkbox" 
+                name="board" 
+                value="{{ board }}" 
+                {% if board in query.get("board", []) %} 
+                  checked="checked" 
+                {% endif %} 
+                id="board-{{ board }}" /> 
+                <label class="form-check-label" for="board-{{ board }}"> 
+                  /{{ board }}/ 
+                </label> 
+            </div> 
+          {% endfor %} 
+        </fieldset> 
+      {% endif %} 
+
+      {% if threads %} 
+        <fieldset id="thread-filter"> 
+          <legend>Threads</legend>
+          <input class="form-control form-control-sm" type="text" placeholder="Disabled, not ready"  disabled />
+          <div> 
+            {% for thread in threads %}  
+              <div class="form-check">  
+                <input  
+                  class="form-check-input"  
+                  type="checkbox"  
+                  name="thread"  
+                  value="{{ thread["id"] }}"  
+                  {% if thread["id"]|string in query.get("thread", []) %}  
+                    checked="checked"  
+                  {% endif %}  
+                  id="thread-{{ thread["id"] }}" />  
+                  <label class="form-check-label" for="thread-{{ thread["id"] }}">  
+                    <small>/{{ thread["board"] }}/{{ thread["id"] }} <span class="badge badge-secondary">{{ thread["files"] }}</span><br /><span>{{ thread["subject"] }}</span> </small>  
+                  </label>  
+              </div>  
+            {% endfor %} 
+          </div> 
+        </fieldset>  
+      {% endif %} 
+
+      <fieldset> 
+        <div class="btn-toolbar" role="toolbar" aria-label="Search toolbar"> 
+          <div class="btn-group mr-2" role="group" aria-label="Search buttons"> 
+            <button type="submit" class="btn btn-primary">Filter</button> 
+            <a href="{{ url("videos") }}" class="btn btn-danger">Reset</a> 
+          </div> 
+        </div> 
+      </fieldset>
+
+    </form> 
+  </aside>
+
   <div class="row">
-
-    <div class="col-md-2">
-      <h4>Filter</h4>
-
-      <form method="get" action="{{ url("videos") }}">
-
-        {% if boards %}
-          <div class="card">
-            <div class="card-header">Boards</div>
-            <div class="card-body">
-              <fieldset>
-                {% for board in boards %}
-                  <div class="form-check">
-                    <input
-                      class="form-check-input"
-                      type="checkbox"
-                      name="board"
-                      value="{{ board }}"
-                      {% if board in query.get("board", []) %}
-                        checked="checked"
-                      {% endif %}
-                      id="board-{{ board }}" />
-                      <label class="form-check-label" for="board-{{ board }}">
-                        /{{ board }}/
-                      </label>
-                  </div>
-                {% endfor %}
-              </fieldset>
-            </div>
-          </div>
-          <br />
-        {% endif %}
-
-        {% if threads %}
-          <div class="card">
-            <div class="card-header">Threads</div>
-            <div class="card-body" style="max-height: 80vh; overflow-y: auto; overflow-x: hidden;">
-              <fieldset> 
-                {% for thread in threads %} 
-                  <div class="form-check"> 
-                    <input 
-                      class="form-check-input" 
-                      type="checkbox" 
-                      name="thread" 
-                      value="{{ thread["id"] }}" 
-                      {% if thread["id"]|string in query.get("thread", []) %} 
-                        checked="checked" 
-                      {% endif %} 
-                      id="thread-{{ thread["id"] }}" /> 
-                      <label class="form-check-label" for="thread-{{ thread["id"] }}"> 
-                        <small>/{{ thread["board"] }}/{{ thread["id"] }} <span class="badge badge-secondary">{{ thread["files"] }}</span><br /><span>{{ thread["subject"] }}</span> </small> 
-                      </label> 
-                  </div> 
-                {% endfor %} 
-              </fieldset> 
-
-            </div>
-          </div>
-          <br />
-        {% endif %}
-
-        <div class="card">
-          <div class="card-body">
-            <div class="btn-toolbar" role="toolbar" aria-label="Search toolbar">
-              <div class="btn-group mr-2" role="group" aria-label="Search buttons">
-                <button type="submit" class="btn btn-primary">Filter</button>
-                <a href="{{ url("videos") }}" class="btn btn-danger">Reset</a>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </form>
-
-    </div>
-
-    <div class="col-md-10">
+    <div class="col m-1">
       <br />
       <div class="row">
-        {{ macros.paginator(pagination) }}
+        <div class="mx-auto">
+          {{ macros.paginator(pagination) }}
+        </div>
       </div>
       <div class="row">
         <div class="card-columns">
@@ -111,7 +104,9 @@
       </div>
 
       <div class="row">
-        {{ macros.paginator(pagination) }}
+        <div class="mx-auto">
+          {{ macros.paginator(pagination) }}
+        </div>
       </div>
 
     </div>
