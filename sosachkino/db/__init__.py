@@ -153,7 +153,12 @@ class DB:
 
     async def get_videos(self, filter_=dict()):
         """Get list of videos with filter."""
-        q = sa.select([Files]).order_by(Files.timestamp.desc())
+        q = sa.select([
+            Files,
+            Threads.subject
+        ]).select_from(
+            Files.__table__.join(Threads, Threads.id == Files.thread)
+        ).order_by(Files.timestamp.desc())
         q = self.filter_query(q, filter_)
         if 'limit' in filter_:
             q = q.limit(filter_['limit'])

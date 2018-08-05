@@ -102,9 +102,10 @@
               </video>
 
               <div class="card-body">
-                <h5 class="card-title">{{ video["name"] }}</h5>
+                <h5 class="card-title"><span class="badge badge-secondary">{{ video.board }}</span> {{ video["name"] }}</h5>
+                <p class="card-text">{{ video.date.strftime("%d.%m.%y %H:%M:%S") }} <small class="text-muted">{{ video.thread }}</small></p>
                 <p class="card-text">
-                  <small class="text-muted">{{ video.date.strftime("%d.%m.%y %H:%M:%S") }}</small>
+                  <small class="text-muted">{{ video.subject }}</small>
                 </p>
               </div>
             </div>

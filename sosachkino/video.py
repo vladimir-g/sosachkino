@@ -42,3 +42,18 @@ class Video:
             return None
         # Without leading dot
         return self.types.get(spl[1][1:], None)
+
+    @property
+    def board(self):
+        """Get board."""
+        return '/{}/'.format(self.data['board'])
+    
+    @property
+    def thread(self):
+        """Get thread with board."""
+        return '/{}/{}'.format(self.data['board'], self.data['thread'])
+
+    @property
+    def subject(self):
+        """Get thread subject."""
+        return self.data['subject']
