@@ -3,7 +3,7 @@
 {% block center %}
   <input type="checkbox" class="d-none" id="slide" name="slide" autocomplete="off" />
   <aside id="sidebar" class="col-xs-12 col-sm-6 col-md-4 col-lg-3 bg-light">
-    <label id="slide-toggle" for="slide">Filter</label>
+    <label id="slide-toggle" for="slide"><i class="fas fa-filter"></i><br />Filter</label>
     <label id="slide-close" class="close" for="slide">
       <span aria-hidden="true" title="Close">&times;</span>
     </label>
@@ -107,6 +107,12 @@
                 <p class="card-text">
                   <small class="text-muted">{{ video.subject }}</small>
                 </p>
+                <a href="{{ video.url }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Direct link">
+                  <i class="fas fa-external-link-alt"></i>
+                </a>
+                <a href="{{ video.thread_link(app, query) }}" class="btn btn-sm btn-outline-secondary" title="Filter by thread">
+                  <i class="fas fa-filter"></i>
+                </a>
               </div>
             </div>
           {% endfor %}

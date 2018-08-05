@@ -57,3 +57,10 @@ class Video:
     def subject(self):
         """Get thread subject."""
         return self.data['subject']
+
+    def thread_link(self, app, query=None):
+        """Get link filtered by thread."""
+        q = dict(thread=self.data['thread'])
+        if query is not None and 'limit' in query:
+            q['limit'] = query['limit']
+        return app.router['videos'].url_for().with_query(q)
