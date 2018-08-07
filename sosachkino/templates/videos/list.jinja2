@@ -77,54 +77,48 @@
     </form> 
   </aside>
 
+  <br />
   <div class="row">
-    <div class="col m-1">
-      <br />
-      <div class="row">
-        <div class="mx-auto">
-          {{ macros.paginator(pagination) }}
+    <div class="mx-auto">
+      {{ macros.paginator(pagination) }}
+    </div>
+  </div>
+
+  <div class="card-columns">
+
+    {% for video in videos %}
+      <div class="card">
+        <video class="card-img-top"
+               src="{{ video.url }}"
+               poster="{{ video.thumbnail }}"
+               {% if video.type %}
+                 type="{{ video.type }}"
+               {% endif %}
+               preload="none"
+               controls="controls">
+               Video couldn't be played by browser
+        </video>
+
+        <div class="card-body">
+          <h5 class="card-title"><span class="badge badge-secondary">{{ video.board }}</span> {{ video["name"] }}</h5>
+          <p class="card-text">{{ video.date.strftime("%d.%m.%y %H:%M:%S") }} <small class="text-muted">{{ video.thread }}</small></p>
+          <p class="card-text">
+            <small class="text-muted">{{ video.subject }}</small>
+          </p>
+          <a href="{{ video.url }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Direct link">
+            <i class="fas fa-external-link-alt"></i>
+          </a>
+          <a href="{{ video.thread_link(app, query) }}" class="btn btn-sm btn-outline-secondary" title="Filter by thread">
+            <i class="fas fa-filter"></i>
+          </a>
         </div>
       </div>
-      <div class="row">
-        <div class="card-columns">
+    {% endfor %}
+  </div>
 
-          {% for video in videos %}
-            <div class="card">
-              <video class="card-img-top"
-                     src="{{ video.url }}"
-                     poster="{{ video.thumbnail }}"
-                     {% if video.type %}
-                       type="{{ video.type }}"
-                     {% endif %}
-                     preload="none"
-                     controls="controls">
-                     Video couldn't be played by browser
-              </video>
-
-              <div class="card-body">
-                <h5 class="card-title"><span class="badge badge-secondary">{{ video.board }}</span> {{ video["name"] }}</h5>
-                <p class="card-text">{{ video.date.strftime("%d.%m.%y %H:%M:%S") }} <small class="text-muted">{{ video.thread }}</small></p>
-                <p class="card-text">
-                  <small class="text-muted">{{ video.subject }}</small>
-                </p>
-                <a href="{{ video.url }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Direct link">
-                  <i class="fas fa-external-link-alt"></i>
-                </a>
-                <a href="{{ video.thread_link(app, query) }}" class="btn btn-sm btn-outline-secondary" title="Filter by thread">
-                  <i class="fas fa-filter"></i>
-                </a>
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="mx-auto">
-          {{ macros.paginator(pagination) }}
-        </div>
-      </div>
-
+  <div class="row">
+    <div class="mx-auto">
+      {{ macros.paginator(pagination) }}
     </div>
   </div>
 
