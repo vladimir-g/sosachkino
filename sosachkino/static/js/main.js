@@ -1,3 +1,4 @@
+// Filter threads by text in input
 var filterThreads = function (query) {
     var query = query.toLowerCase();
     var checks = document.querySelectorAll('#thread-filter div.form-check');
@@ -10,12 +11,28 @@ var filterThreads = function (query) {
     }
 };
 
-document.getElementById('thread-input').addEventListener('input', function (e) {
+var threadInput = document.getElementById('thread-input');
+threadInput.addEventListener('input', function (e) {
     filterThreads(e.target.value.toLowerCase());
 });
 
-document.getElementById('reset-thread').addEventListener('click', function (e) {
+var resetBtn = document.getElementById('reset-thread');
+resetBtn.addEventListener('click', function (e) {
     e.preventDefault();
-    document.getElementById('thread-input').value = '';
+    threadInput.value = '';
     filterThreads('');
 });
+
+// Stop all videos except played
+var videos = document.getElementsByClassName('video');
+for (var i = 0, j = videos.length; i < j; i++) {
+    videos[i].addEventListener('play', function (e) {
+        for (var k = 0; k < j; k++) {
+            if (videos[k] !== this &&
+                videos[k].played.length &&
+                !videos[k].paused) {
+                videos[k].pause();
+            }
+        }
+    });
+};
