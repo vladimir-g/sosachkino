@@ -14,6 +14,7 @@ var getSetting = function (key, default_) {
         var value = window.localStorage.getItem(key);
         if (value === null)
             return default_;
+        return value;
     } catch (e) {
         return default_;
     }
