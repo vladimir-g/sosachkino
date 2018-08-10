@@ -8,20 +8,71 @@
 
     <link rel="stylesheet" type="text/css" href="{{ url("static", filename="css/bootstrap.min.css") }}" />
     <link rel="stylesheet" type="text/css" href="{{ url("static", filename="css/fontawesome.min.css") }}" />
-    <link rel="stylesheet" type="text/css" href="{{ url("static", filename="css/main.css", query_={"v": "0.2"}) }}" />
+    <link rel="stylesheet" type="text/css" href="{{ url("static", filename="css/main.css", query_={"v": "0.3"}) }}" />
 
     <title>{% block title %}SosachKino{% endblock %}</title>
   </head>
   <body>
 
+    <div id="lightbox">
+      <span id="video-counter" class="video-text"></span>
+      <div class="close">
+        <button class="btn btn-light">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="lightbox-btn" id="prev">
+        <i class="fas fa-chevron-left"></i>
+      </div>
+      <div class="lightbox-btn" id="next">
+        <i class="fas fa-chevron-right"></i>
+      </div>
+      <span id="video-name" class="video-text"></span>
+    </div>
+
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
       <a class="navbar-brand" href="{{ url("videos") }}"><i class="fas fa-video"></i> SosachKino</a>
+      <button id="settings-btn" class="ml-auto btn btn-sm btn-primary my-2">
+        <i class="fas fa-cog"></i> <span class="d-none d-sm-inline">Settings</span
+      </button>
     </nav>
 
     <div class="container-fluid">
       {% block center %}{% endblock %}
     </div>
 
-    <script src="{{ url("static", filename="js/main.js", query_={"v": "0.2"}) }}"></script>
+    <div id="settings-overlay">
+    </div>
+
+    <div id="settings-dialog" class="modal" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Settings</h5>
+            <button type="button" class="close settings-close" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form>
+              <div class="form-group form-check">
+                <input type="checkbox" class="form-check-input" id="use-js-player" />
+                <label class="form-check-label" for="use-js-player">Use Javascript fullscreen player</label>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="save-settings" class="btn btn-primary">
+              <i class="fas fa-check"></i> Save
+            </button>
+            <button type="button" class="btn btn-secondary settings-close">
+              <i class="fas fa-times"></i> Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="{{ url("static", filename="js/main.js", query_={"v": "0.3"}) }}"></script>
   </body>
 </html>

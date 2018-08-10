@@ -94,13 +94,14 @@
                {% if video.type %}
                  type="{{ video.type }}"
                {% endif %}
+               data-name="{{ video.name }}"
                preload="none"
                controls="controls">
                Video couldn't be played by browser
         </video>
 
         <div class="card-body">
-          <h5 class="card-title"><span class="badge badge-secondary">{{ video.board }}</span> {{ video["name"] }}</h5>
+          <h5 class="card-title"><span class="badge badge-secondary">{{ video.board }}</span> {{ video.name }}</h5>
           <p class="card-text">{{ video.date.strftime("%d.%m.%y %H:%M:%S") }} <small class="text-muted">{{ video.thread }}</small></p>
           <p class="card-text">
             <small class="text-muted">{{ video.subject }}</small>

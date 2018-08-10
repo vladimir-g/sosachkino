@@ -53,11 +53,6 @@ class Video:
         """Get thread with board."""
         return '/{}/{}'.format(self.data['board'], self.data['thread'])
 
-    @property
-    def subject(self):
-        """Get thread subject."""
-        return self.data['subject']
-
     def thread_link(self, app, query=None):
         """Get link filtered by thread."""
         q = dict(thread=self.data['thread'])
