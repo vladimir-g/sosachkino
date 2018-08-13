@@ -46,7 +46,6 @@ class Updater:
             return
         thread_ids = [int(thread['num']) for thread in threads]
         state = await self.db.get_state(board, thread_ids)
-        files = []
         interval = int(self.config['updater']['sleep'])
         await asyncio.sleep(interval)
         for thread in threads:
@@ -87,6 +86,7 @@ class Updater:
                     continue
 
             # Process posts
+            files = []
             try:
                 last_id = thread_id
                 for post in data:
@@ -100,8 +100,13 @@ class Updater:
                         })
                         files.append(f)
                     last_id = int(post['num'])
-                    
+
                 await self.db.update_thread_state(board, thread, last_id)
+                if len(files):
+                    logger.info('Saving %s new videos for /%s/',
+                                len(files), board)
+                    await self.db.save_videos(files)
+                    files = []
             except Exception as e:
                 logger.exception("Error while processing posts /%s/%s: %s",
                                  board, thread_id, e)
@@ -109,8 +114,6 @@ class Updater:
 
             # Sleep for configured time
             await asyncio.sleep(interval)
-        logger.info('Got %s new videos for /%s/', len(files), board)
-        await self.db.save_videos(files)
         await self.db.set_removed(board, thread_ids)
         await self.db.clean_threads()
 
