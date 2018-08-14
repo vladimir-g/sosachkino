@@ -171,11 +171,16 @@ class Updater:
         logger.debug('Checking %s files', len(check_files))
         interval = int(self.config['cleanup']['sleep'])
         for f in check_files:
-            exists = await self.api.check_file(f['path'])
-            if not exists:
-                await self.db.remove_file(f['id'])
-            else:
-                await self.db.update_checked(f['id'])
+            try:
+                exists = await self.api.check_file(f['path'])
+                if not exists:
+                    await self.db.remove_file(f['id'])
+                else:
+                    await self.db.update_checked(f['id'])
+            except ApiError as e:
+                logger.warning("Couldn't check %s: %s", f['path'], e)
+            except Exception as e:
+                logger.exception("Error while checking %s: %s", f['path'], e)
             # Cleand threads when there is no update
             if not self.is_running:
                 await self.db.clean_threads()
@@ -238,7 +243,7 @@ class Updater:
         app['cleanup_task'] = app.loop.create_task(
             app['updater'].run_cleanup(app)
         )
-        
+
     @classmethod
     async def cleanup_task(cls, app):
         """Stop background tasks."""
