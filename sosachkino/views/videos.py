@@ -39,7 +39,8 @@ class VideosView(BaseView):
 
         boards = await request.app['db'].get_boards()
         # Now get the videos
-        async for video in request.app['db'].get_videos(q):
+        video_data = await request.app['db'].get_videos(q)
+        for video in video_data:
             videos.append(Video(video))
 
         count = await request.app['db'].get_videos_count(q)

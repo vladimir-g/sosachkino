@@ -47,7 +47,7 @@ class DB:
                            where(Threads.board == board)])
         res = await self.conn.scalar(query)
         if res:
-            # Update existingthread
+            # Update existing thread
             q = sa.update(Threads).where(Threads.id == thread_id)
         else:
             # Insert new thread
@@ -166,11 +166,8 @@ class DB:
             q = q.offset(filter_['offset'])
 
         res = await self.conn.execute(q)
-        while True:
-            row = await res.fetchone()
-            if row is None:
-                break
-            yield dict(row)
+        result = await res.fetchall()
+        return [dict(row) for row in result]
 
     async def set_removed(self, board, thread_ids):
         """Set removed date for threads that don't exist in catalog now."""
