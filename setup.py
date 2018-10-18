@@ -16,13 +16,14 @@ setup(
     description='Web-based sosach webm viewer',
     long_description=long_description,
 
-    author='Sionic',
+    author='Vladimir Gorbunov',
+    author_email='vsg@suburban.me',
 
     packages=find_packages(exclude=['docs', 'tests']),
     install_requires=[
         'aiohttp',
         'aiohttp_jinja2',
-        'sqlalchemy_aio',
+        'aiopg[sa]',
     ],
 
     extras_require = {
@@ -35,7 +36,8 @@ setup(
     entry_points = {
         'console_scripts': [
             'sosachkino=sosachkino:main',
-            'sosachkino-initdb=sosachkino.db.initdb:initdb'
+            'sosachkino-initdb=sosachkino.db.initdb:initdb',
+            'sosachkino-printsql=sosachkino.db.initdb:print_sql'
         ],
     },
 

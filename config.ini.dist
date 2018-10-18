@@ -16,7 +16,9 @@ removed_thread_check_time = 3600
 file_check_time = 14400
 
 [db]
-conn_string = sqlite:////absolute/path/to/database.sqlite
+user = sosachkino
+database = sosachkino
+password = sosachkino
 
 # Logging config
 [loggers]

@@ -45,7 +45,7 @@ def main():
     app['api'] = api
 
     # Database
-    db = DB(config['db']['conn_string'])
+    db = DB(config['db'])
     app['db'] = db
 
     # Updater

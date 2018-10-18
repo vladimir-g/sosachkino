@@ -4,7 +4,7 @@ import asyncio
 import datetime
 import sqlalchemy as sa
 from collections import defaultdict
-from sqlalchemy_aio import ASYNCIO_STRATEGY
+from aiopg.sa import create_engine
 
 from sosachkino.db.models import *
 
@@ -13,30 +13,30 @@ logger = logging.getLogger(__name__)
 
 class DB:
     """Wrapper for sqlite database."""
-    def __init__(self, conn_string):
-        self.conn_string = conn_string
+    def __init__(self, db_config):
+        self.db_config = db_config
 
     async def init(self, app):
-        """Init database connection and create tables."""
-        logger.info('Initializing database with config %s', self.conn_string)
-        self.engine = sa.create_engine(self.conn_string,
-                                       strategy=ASYNCIO_STRATEGY)
-        self.conn = await self.engine.connect()
+        """Init database engine."""
+        logger.info('Initializing database with config %s',
+                    dict(self.db_config))
+        self.engine = await create_engine(**self.db_config)
         logger.info('Database initialized')
 
     async def shutdown(self, app):
         """Close database connection."""
         logger.info('Shutting down database')
-        await self.conn.close()
+        self.engine.close()
 
     async def get_state(self, board, thread_ids=None):
         """Get current saved state for every thread in board."""
         q = sa.select([Threads]).where(Threads.board == board)
         if thread_ids is not None and len(thread_ids):
             q = q.where(Threads.id.in_(thread_ids))
-        result = await self.conn.execute(q)
-        threads = await result.fetchall()
-        state = {row['id']: row for row in threads}
+        state = {}
+        async with self.engine.acquire() as conn:
+            async for row in conn.execute(q):
+                state[row['id']] = row
         return state
 
     async def update_thread_state(self, board, thread, last_id):
@@ -45,7 +45,8 @@ class DB:
         query = sa.select([sa.exists().
                            where(Threads.id == thread_id).
                            where(Threads.board == board)])
-        res = await self.conn.scalar(query)
+        async with self.engine.acquire() as conn:
+            res = await conn.scalar(query)
         if res:
             # Update existing thread
             q = sa.update(Threads).where(Threads.id == thread_id)
@@ -60,7 +61,8 @@ class DB:
             board=board,
             id=thread_id
         )
-        await self.conn.execute(q)
+        async with self.engine.acquire() as conn:
+            await conn.execute(q)
 
     async def save_videos(self, files):
         """Insert new videos into database."""
@@ -70,14 +72,12 @@ class DB:
             checksums[f['board']].append(f['md5'])
         existing = defaultdict(set)
         for board, md5_list in checksums.items():
-            c = await self.conn.execute(
-                sa.select([Files.md5])
-                .where(Files.md5.in_(md5_list))
-                .where(Files.board == board)
-            )
-            res = await c.fetchall()
-            for row in res:
-                existing[board].add(row['md5'])
+            q = sa.select([Files.md5]).\
+                where(Files.md5.in_(md5_list)).\
+                where(Files.board == board)
+            async with self.engine.acquire() as conn:
+                async for row in conn.execute(q):
+                    existing[board].add(row['md5'])
         for f in files:
             keys = ('size', 'width', 'height', 'thumbnail', 'tn_height',
                     'tn_width', 'path', 'md5', 'thread', 'board')
@@ -100,7 +100,8 @@ class DB:
                 values['id'] = int(''.join(
                     [c for c in f['name'] if c.isdigit()]
                 ))
-            await self.conn.execute(q.values(**values))
+            async with self.engine.acquire() as conn:
+                await conn.execute(q.values(**values))
 
     def filter_query(self, query, filter_):
         """Get filtered query for video list."""
@@ -114,7 +115,8 @@ class DB:
         """Get list of videos with filter."""
         q = sa.select([sa.func.count(Files.id)]).select_from(Files)
         q = self.filter_query(q, filter_)
-        result = await self.conn.scalar(q)
+        async with self.engine.acquire() as conn:
+            result = await conn.scalar(q)
         return result
 
     async def get_threads(self, filter_=dict()):
@@ -140,11 +142,10 @@ class DB:
                 pass
             filter_ = filter_.copy()
             del filter_['thread']
-        res = await self.conn.execute(
-            self.filter_query(q, filter_)
-        )
-        result = await res.fetchall()
-        threads = [dict(row) for row in result]
+        threads = []
+        async with self.engine.acquire() as conn:
+            async for row in conn.execute(self.filter_query(q, filter_)):
+                threads.append(dict(row))
         if filtered is not None:
             threads = sorted(threads,
                              key=lambda t: (t['id'] in filtered, t['files']),
@@ -152,7 +153,7 @@ class DB:
         return threads
 
     async def get_videos(self, filter_=dict()):
-        """Get list of videos with filter."""
+        """Get list of videos with filter, generator."""
         q = sa.select([
             Files,
             Threads.subject
@@ -165,82 +166,85 @@ class DB:
         if 'offset' in filter_:
             q = q.offset(filter_['offset'])
 
-        res = await self.conn.execute(q)
-        result = await res.fetchall()
-        return [dict(row) for row in result]
+        async with self.engine.acquire() as conn:
+            async for row in conn.execute(q):
+                yield dict(row)
 
     async def set_removed(self, board, thread_ids):
         """Set removed date for threads that don't exist in catalog now."""
         logger.debug('Marking old threads as removed, board: /%s/', board)
-        await self.conn.execute(
-            sa.update(Threads)
-            .where(~Threads.id.in_(thread_ids))
-            .where(Threads.removed_date == None)
-            .where(Threads.board == board)
-            .values(removed_date=datetime.datetime.now())
-        )
+        async with self.engine.acquire() as conn:
+            await conn.execute(
+                sa.update(Threads)
+                .where(~Threads.id.in_(thread_ids))
+                .where(Threads.removed_date == None)
+                .where(Threads.board == board)
+                .values(removed_date=datetime.datetime.now())
+            )
 
     async def get_boards(self):
         """Get list of existing boards."""
         boards = set()
-        c = await self.conn.execute(
-            sa.select([sa.distinct(Threads.board)])
-        )
-        result = await c.fetchall()
-        for row in result:
-            boards.add(row[0])
+        q = sa.select([sa.distinct(Threads.board)])
+        async with self.engine.acquire() as conn:
+            async for row in conn.execute(q):
+                boards.add(row[0])
         return sorted(boards)
 
     async def get_removed_thread_check(self, from_date):
         """Get files from removed threads that need checking."""
-        c = await self.conn.execute(
-            sa.select([Files]).select_from(
-                Files.__table__.join(Threads, Threads.id == Files.thread)
-            ).where(Threads.removed_date < datetime.datetime.now())
-            .where(Files.last_check < from_date)
-            .order_by(Files.last_check.asc())
-        )
-        res = await c.fetchall()
-        files = [dict(f) for f in res]
+        q = sa.select([Files]).select_from(
+            Files.__table__.join(Threads, Threads.id == Files.thread)
+        ).where(Threads.removed_date < datetime.datetime.now()).\
+        where(Files.last_check < from_date).\
+        order_by(Files.last_check.asc())
+        files = []
+        async with self.engine.acquire() as conn:
+            async for row in conn.execute(q):
+                files.append(dict(row))
         logger.debug('Found %s potentially missing files', len(files))
         return files
 
     async def get_files_to_check(self, from_date):
         """Get files that just need check."""
-        c = await self.conn.execute(
-            sa.select([Files])
-            .where(Files.last_check < from_date)
-            .order_by(Files.last_check.desc()) # Check newer files first
-            .limit(60)      # Don't check everything in one run
-        )
-        res = await c.fetchall()
-        files = [dict(f) for f in res]
+        # Check newer files first
+        q = sa.select([Files]).\
+            where(Files.last_check < from_date).\
+            order_by(Files.last_check.desc()).\
+            limit(60)      # Don't check everything in one run
+        files = []
+        async with self.engine.acquire() as conn:
+            async for row in conn.execute(q):
+                files.append(dict(row))
         logger.debug('Got %s old files', len(files))
         return files
 
     async def remove_file(self, file_id):
         """Remove file from database."""
         logger.debug('Removing file %s', file_id)
-        await self.conn.execute(
-            sa.delete(Files).where(Files.id == file_id)
-        )
+        async with self.engine.acquire() as conn:
+            await conn.execute(
+                sa.delete(Files).where(Files.id == file_id)
+            )
 
     async def update_checked(self, file_id):
         """Remove file from database."""
         logger.debug('Update last check for file %s', file_id)
-        await self.conn.execute(
-            sa.update(Files).where(Files.id == file_id)
-            .values(last_check=datetime.datetime.now())
-        )
+        async with self.engine.acquire() as conn:
+            await conn.execute(
+                sa.update(Files).where(Files.id == file_id)
+                .values(last_check=datetime.datetime.now())
+            )
 
     async def clean_threads(self):
         """Remove threads without files from database."""
         logger.debug('Cleaning old threads')
-        await self.conn.execute(
-            sa.delete(Threads).where(Threads.id.in_(
-                sa.select([Threads.id]).select_from(
-                    Threads.__table__.outerjoin(Files, Files.thread == Threads.id)
-                ).group_by(Threads.id)
-                .having(sa.func.count(Files.id) == 0))
+        async with self.engine.acquire() as conn:
+            await conn.execute(
+                sa.delete(Threads).where(Threads.id.in_(
+                    sa.select([Threads.id]).select_from(
+                        Threads.__table__.outerjoin(Files, Files.thread == Threads.id)
+                    ).group_by(Threads.id)
+                    .having(sa.func.count(Files.id) == 0))
+                )
             )
-        )
