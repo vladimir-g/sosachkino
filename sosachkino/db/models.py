@@ -13,10 +13,14 @@ class Threads(Base):
     updated = sa.Column(sa.DateTime(timezone=True))
     removed_date = sa.Column(sa.DateTime(timezone=True))
 
+    __table_args__ = (
+        sa.UniqueConstraint('id', 'board', name='threads_unique'),
+    )
+
 
 class Files(Base):
     """Webm file model."""
-    id = sa.Column(sa.BigInteger, primary_key=True)
+    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=False)
     thread = sa.Column(
         sa.ForeignKey('threads.id', onupdate="CASCADE", ondelete="CASCADE"),
         index=True
@@ -35,3 +39,7 @@ class Files(Base):
     hidden = sa.Column(sa.Boolean, default=False)
     last_check = sa.Column(sa.DateTime(timezone=True), default=sa.func.now(),
                            index=True)
+
+    __table_args__ = (
+        sa.UniqueConstraint('board', 'md5', name='files_unique'),
+    )

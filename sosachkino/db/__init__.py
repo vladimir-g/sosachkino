@@ -6,6 +6,7 @@ import pytz
 import sqlalchemy as sa
 from collections import defaultdict
 from aiopg.sa import create_engine
+from sqlalchemy.dialects import postgresql as pg
 
 from sosachkino.db.models import *
 
@@ -42,44 +43,24 @@ class DB:
 
     async def update_thread_state(self, board, thread, last_id):
         """Update thread in database after check."""
-        thread_id = int(thread['num'])
-        query = sa.select([sa.exists().
-                           where(Threads.id == thread_id).
-                           where(Threads.board == board)])
-        async with self.engine.acquire() as conn:
-            res = await conn.scalar(query)
-        if res:
-            # Update existing thread
-            q = sa.update(Threads).where(Threads.id == thread_id)
-        else:
-            # Insert new thread
-            q = Threads.__table__.insert()
-        q = q.values(
+        data = dict(
             subject=thread.get('subject', thread['num']),
             last=last_id,
             updated=datetime.datetime.now(),
             files_count=thread['files_count'],
             board=board,
-            id=thread_id
+            id=int(thread['num'])
         )
+        q = pg.insert(Threads.__table__).values(**data).\
+            on_conflict_do_update(
+                constraint='threads_unique',
+                set_=data
+            )
         async with self.engine.acquire() as conn:
             await conn.execute(q)
 
     async def save_videos(self, files):
         """Insert new videos into database."""
-        checksums = defaultdict(list)
-        # Get already existing files with same md5 for same boards
-        for f in files:
-            checksums[f['board']].append(f['md5'])
-        existing = defaultdict(set)
-        for board, md5_list in checksums.items():
-            q = sa.select([Files.md5]).\
-                where(Files.md5.in_(md5_list)).\
-                where(Files.board == board)
-            async with self.engine.acquire() as conn:
-                async for row in conn.execute(q):
-                    existing[board].add(row['md5'])
-        # Manually set timezone to site tz
         timezone = pytz.timezone('Europe/Moscow')
         for f in files:
             keys = ('size', 'width', 'height', 'thumbnail', 'tn_height',
@@ -91,23 +72,17 @@ class DB:
                 'timestamp': datetime.datetime.fromtimestamp(
                     f['timestamp'],
                     tz=timezone
-                )
+                ),
+                'id': int(''.join([c for c in f['name'] if c.isdigit()]))
             })
-            if f['md5'] in existing[f['board']]:
-                q = sa.update(Files).\
-                    where(Files.board == f['board']).\
-                    where(Files.md5 == f['md5'])
-                logger.debug('Updating file: board %s, checksum %s',
-                             f['board'], f['md5'])
-            else:
-                q = Files.__table__.insert()
-                logger.debug('Inserting file: board %s, checksum %s',
-                             f['board'], f['md5'])
-                values['id'] = int(''.join(
-                    [c for c in f['name'] if c.isdigit()]
-                ))
+            q = pg.insert(Files.__table__).values(**values).\
+                on_conflict_do_update(
+                    constraint='files_unique',
+                    set_=values
+                )
+            logger.debug('File: board %s, checksum %s', f['board'], f['md5'])
             async with self.engine.acquire() as conn:
-                await conn.execute(q.values(**values))
+                await conn.execute(q)
 
     def filter_query(self, query, filter_):
         """Get filtered query for video list."""
