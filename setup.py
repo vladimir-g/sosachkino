@@ -24,6 +24,7 @@ setup(
         'aiohttp',
         'aiohttp_jinja2',
         'aiopg[sa]',
+        'pytz',
     ],
 
     extras_require = {

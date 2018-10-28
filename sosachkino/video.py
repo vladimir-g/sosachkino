@@ -1,5 +1,6 @@
 import os
 import datetime
+import pytz
 from urllib.parse import urljoin
 
 from sosachkino.api import Api
@@ -14,6 +15,7 @@ class Video:
 
     def __init__(self, data):
         self.data = data
+        self.tz = pytz.timezone('Europe/Moscow') # Maybe make it class attr?
 
     @property
     def url(self):
@@ -28,7 +30,7 @@ class Video:
     @property
     def date(self):
         """Get datetime from internal file timestamp."""
-        return self.data['timestamp']
+        return self.data['timestamp'].astimezone(self.tz)
 
     def __getitem__(self, key):
         """Get field from internal row."""

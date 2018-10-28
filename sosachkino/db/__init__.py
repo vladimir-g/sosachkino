@@ -2,6 +2,7 @@ import os
 import logging
 import asyncio
 import datetime
+import pytz
 import sqlalchemy as sa
 from collections import defaultdict
 from aiopg.sa import create_engine
@@ -78,6 +79,8 @@ class DB:
             async with self.engine.acquire() as conn:
                 async for row in conn.execute(q):
                     existing[board].add(row['md5'])
+        # Manually set timezone to site tz
+        timezone = pytz.timezone('Europe/Moscow')
         for f in files:
             keys = ('size', 'width', 'height', 'thumbnail', 'tn_height',
                     'tn_width', 'path', 'md5', 'thread', 'board')
@@ -85,7 +88,10 @@ class DB:
             values = {k: f[k] for k in keys}
             values.update({
                 'name': name,
-                'timestamp': datetime.datetime.fromtimestamp(f['timestamp'])
+                'timestamp': datetime.datetime.fromtimestamp(
+                    f['timestamp'],
+                    tz=timezone
+                )
             })
             if f['md5'] in existing[f['board']]:
                 q = sa.update(Files).\
