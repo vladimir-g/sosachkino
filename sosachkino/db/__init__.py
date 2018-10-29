@@ -225,7 +225,8 @@ class DB:
                 sa.delete(Threads).where(Threads.id.in_(
                     sa.select([Threads.id]).select_from(
                         Threads.__table__.outerjoin(Files, Files.thread == Threads.id)
-                    ).group_by(Threads.id)
+                    ).where(Threads.removed_date.isnot(None))
+                    .group_by(Threads.id)
                     .having(sa.func.count(Files.id) == 0))
                 )
             )
